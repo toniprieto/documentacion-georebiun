@@ -1,0 +1,18 @@
+<html>
+    <head>
+        <title>Ejemplo formulario con selector de coordenadas</title>
+    </head>
+    <script type="text/javascript">
+        function popUpMapa(param) {
+            window.open("./coordenadas.html?fieldid=" + param, 'popupmapa', 'toolbar=0,scrollbars=1,location=0,statusbar=0,menubar=0,resizable=1,width=850,height=650');
+        }
+    </script>
+<body>
+    <h4>Ejemplo selector coordenadas</h4>
+    <form name="formulario" id="formulario1">
+        <input type="text" name="campo_coordenadas" size="100"/>
+        <button onclick="javascript:popUpMapa('campo_coordenadas')">Abrir selector de coordenadas</button>
+    </form>
+</body>
+</html>
+
