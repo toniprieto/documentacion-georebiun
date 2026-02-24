@@ -11,6 +11,7 @@ Incluye:
 
 ## Últimos cambios añadidos
 
+* 24/02/2026: Añadidas mejoras en versión 7.6 de selector de coordenadas para habilitar arrastre del mapa, vista satélite y permitir añadir coordenadas en nuevo campo
 * 24/01/2025: instrucciones iniciales
 
 ## Metadato y formato
