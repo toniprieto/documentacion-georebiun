@@ -30,6 +30,8 @@ dc.coverage.spatial=	east=14.448020000000042; north=-11.71077; name=Seles, Angol
 ```
 Ver ejemplo en: [https://upcommons.upc.edu/handle/2117/10820?show=full](https://upcommons.upc.edu/handle/2117/10820?show=full)
 
+También se acepta el formato WKT Point (`POINT(LONGITUD LATITUD)` o `POINT (LONGITUD LATITUD)`), utilizado por las nuevas versiones de DSpace para este metadato.
+
 # Implementación selector de coordenadas
 
 Para facilitar la inclusión de estos metadatos se han preparado cambios para diferentes versiones de DSpace que incluyen un selector de coordenadas utilizando librerías de Google Maps.
@@ -180,6 +182,75 @@ Para mostrar los puntos geolocalizados en el formato `oai_openaire` de la v4 en 
 </xsl:template>
 ```
 
+Si además de las geolocalizaciones en el formato `east=…; north=…; name=…` se tienen en formato WKT Point (`POINT(LONGITUD LATITUD)` o `POINT (LONGITUD LATITUD)`), utilizado por las nuevas versiones de DSpace, se puede utilizar la siguiente template, que además de parsear el formato clásico también parsea el WKT Point (el orden en WKT es longitud, latitud):
+
+```xml
+<xsl:template name="GeoLocation_R">
+    <xsl:if test="doc:metadata/doc:element[@name='dc']/doc:element[@name='coverage']/doc:element[@name='spatial']/doc:element/doc:field[@name='value']">
+        <datacite:geoLocations>
+            <xsl:for-each
+                    select="doc:metadata/doc:element[@name='dc']/doc:element[@name='coverage']/doc:element[@name='spatial']/doc:element/doc:field[@name='value']">
+                <xsl:variable name="lowervalue"
+                              select="translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')"/>
+                <xsl:variable name="locationname">
+                    <xsl:choose>
+                        <xsl:when test="contains(substring-after(.,'name='),';')">
+                            <xsl:value-of select="substring-before(substring-after(.,'name='),';')"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="substring-after(.,'name=')"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="longitude">
+                    <xsl:choose>
+                        <!-- Formato WKT POINT: "POINT (lon lat)" o "POINT(lon lat)" -->
+                        <xsl:when test="starts-with($lowervalue,'point(') or starts-with($lowervalue,'point (')">
+                            <xsl:variable name="wkt"
+                                          select="normalize-space(substring-before(substring-after(.,'('),')'))"/>
+                            <xsl:value-of select="substring-before(concat($wkt,' '),' ')"/>
+                        </xsl:when>
+                        <xsl:when test="contains(substring-after(.,'east='),';')">
+                            <xsl:value-of select="substring-before(substring-after(.,'east='),';')"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="substring-after(.,'east=')"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="latitude">
+                    <xsl:choose>
+                        <!-- Formato WKT POINT: el orden WKT es lon lat -->
+                        <xsl:when test="starts-with($lowervalue,'point(') or starts-with($lowervalue,'point (')">
+                            <xsl:variable name="wkt"
+                                          select="normalize-space(substring-before(substring-after(.,'('),')'))"/>
+                            <xsl:value-of select="normalize-space(substring-after($wkt,' '))"/>
+                        </xsl:when>
+                        <xsl:when test="contains(substring-after(.,'north='),';')">
+                            <xsl:value-of select="substring-before(substring-after(.,'north='),';')"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="substring-after(.,'north=')"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <datacite:geoLocation>
+                    <datacite:geoLocationPoint>
+                        <datacite:pointLongitude><xsl:value-of select="$longitude"/></datacite:pointLongitude>
+                        <datacite:pointLatitude><xsl:value-of select="$latitude"/></datacite:pointLatitude>
+                    </datacite:geoLocationPoint>
+                    <xsl:if test="$locationname != ''">
+                        <datacite:geoLocationPlace>
+                            <xsl:value-of select="$locationname"/>
+                        </datacite:geoLocationPlace>
+                    </xsl:if>
+                </datacite:geoLocation>
+            </xsl:for-each>
+        </datacite:geoLocations>
+    </xsl:if>
+</xsl:template>
+```
+
 ## Definir un set con registros geolocalizados
 
 Se puede crear un set `geo` con los registros geolocalizados en DSpace con la siguiente configuración.
@@ -228,4 +299,22 @@ Se puede crear un set `geo` con los registros geolocalizados en DSpace con la si
     <Filter ref="geoFilter" />
 </Set>
 ```
+
+## Exportación de ODS en OpenAIRE v4
+
+Para exportar los Objetivos de Desarrollo Sostenible en el formato `oai_openaire` de la v4 se propone codificarlos como materias (subjects) siguiendo las instrucciones de las guidelines de OpenAIRE para el campo subject y usando parte del esquema DataCite.
+
+Documentación de referencia: https://openaire-guidelines-for-literature-repository-managers.readthedocs.io/en/latest/field_subject.html#dci-subject
+
+Se emplea el esquema de vocabulario de los SDG mantenido por Naciones Unidas (http://metadata.un.org/sdg):
+
+```xml
+<datacite:subjects>
+ <datacite:subject subjectScheme="UN SDG" schemeURI="http://metadata.un.org/sdg" valueURI="http://metadata.un.org/sdg/16">
+ SDG 16 - Peace, justice and strong institutions
+ </datacite:subject>
+</datacite:subjects>
+```
+
+El valor textual puede estar en cualquier formato; la referencia más fiel al ODS es el atributo `valueURI`.
 
